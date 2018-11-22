@@ -139,6 +139,17 @@ dirname      取得目录名
 		g ：前进到这个数据的第一行去；
 		G ：前进到这个数据的最后一行去 （注意大小写） ；
 		q ：离开 less 这个程序；
-	head 只看头几行
-	tail 只看尾巴几行
+	head 只看头几行 -n 【number】【file】 
+	tail 只看尾巴几行  -n 【number     【+多少行以后】 】【file】 
+		head -n 20  /etc/man_db.conf | tail -n 10
+		 cat -n /etc/man_db.conf | head -n 20 | tail -n 10
+	查看非纯文本文件 od
+		-t ：后面可以接各种“类型 （TYPE） ”的输出，例如：
+			a ：利用默认的字符来输出；
+			c ：使用 ASCII 字符来输出
+			d[size] ：利用十进制（decimal） 来输出数据，每个整数占用 size Bytes ；
+			f[size] ：利用浮点数值（floating） 来输出数据，每个数占用 size Bytes ；
+			o[size] ：利用八进位（octal） 来输出数据，每个整数占用 size Bytes ；
+			x[size] ：利用十六进制（hexadecimal） 来输出数据，每个整数占用 size Bytes ；
+
 	od 以二进制的方式读取文件内容
