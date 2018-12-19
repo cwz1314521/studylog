@@ -1,0 +1,209 @@
+1、含日期查询 从起始时间到结束时间
+BasicDBObject queryObj = new BasicDBObject();
+queryObj.put("date",new BasicDBObject().append("gte",starttime).append("gte",starttime).append("lt",endtime));
+2、distinct 查询
+BasicDBObject queryObj = new BasicDBObject();
+coll.distinct("field_name",queryObj);// field_name 为数据库中需要distinct的字段名称，queryObj为查询条件 ，先执行查询条件后在distinct；返回为一个list集合 里面存放所有不重复的 field_name.
+这种方式还是有中缺陷，如果数据量过大 list可能超出容量，不好控制，可以使用group by的方法替换
+3、exists 查询
+BasicDBObject basicObj = new BasicDBObject();
+BasicDBObject andSearch = new BasicDBObject();
+andSearch.put("gte",start.getTime());andSearch.put("gte",start.getTime());andSearch.put("lt", end.getTime());basicObj.put("date", andSearch);
+basicObj.put("field_name", new BasicDBObject("$exists", true)); //若数据库中 field_name 这个字段有值 (包含null)，则符合条件，反之这条记录没有这个字段则不符合条件
+4、group 查询 （分组查询）
+Map<String, Integer> map = new HashMap<String,Integer>();
+DBCollection coll = MongoDB.getDBCollection("user_processed_corpus");
+DBObject fields = new BasicDBObject();
+fields.put("cust_name", "$cust_name");
+DBObject groupField = new BasicDBObject();
+groupField.put("_id", fields);
+groupField.put("count", new BasicDBObject("$sum",1));
+DBObject group = new BasicDBObject("$group",groupField);
+BasicDBObject matchObj = new BasicDBObject();
+matchObj.put("date",new BasicDBObject("lt",end.getTime()).append("lt",end.getTime()).append("gt",start.getTime()));
+matchObj.put("userid", userid);
+matchObj.put("from", from);
+DBObject match = new BasicDBObject("$match",matchObj);
+AggregationOutput output = coll.aggregate(match, group);
+Iterable<DBObject> results = output.results();
+Iterator<DBObject> it = results.iterator();
+while(it.hasNext()){
+DBObject obj = it.next();
+DBObject name = (DBObject) obj.get("_id");
+Object cust_name =name.get("cust_name");
+if(CommonUtil.isNotNull(cust_name)){
+map.put(cust_name.toString(), Integer.valueOf(obj.get("count").toString()));
+}
+}
+    4.2 group（方式2）
+　　public static void group(){
+        BasicDBObject group = new BasicDBObject();
+        group.put("_id", "$userid");
+        group.put("count", new BasicDBObject("$sum",1));
+        AggregationOutput output = coll.aggregate(new BasicDBObject("$group",group));
+        DBObject obj = output.getCommand();
+        System.out.println(obj);
+        CommandResult result = output.getCommandResult();
+        System.out.println(result.get("result"));
+    }
+ 5、addToSet(只能确保添加到记录，不能影响原有记录数据) 相同的数据则不添加
+public static void addToSetAndEachElementInArray(String _id){  
+            List list = new ArrayList();  
+            list.add("str0");  
+            list.add("str1");  
+            list.add(new BasicDBObject("arr90",90));
+            BasicDBObject idObj = new BasicDBObject("_id", new ObjectId(_id));
+            BasicDBObject updateObj = new BasicDBObject();
+            updateObj.put("addToSet",newBasicDBObject("arrays",newBasicDBObject("addToSet",newBasicDBObject("arrays",newBasicDBObject("each",list)));
+            WriteResult result = coll.update(idObj,updateObj);
+            System.out.println("update count:"+result.getN());  
+ } 
+ 6、or 查询 将多个查询条件加入一个list中 用$or 连接list中的查询条件即可
+public static void test1(){
+        BasicDBObject query1 = new BasicDBObject();
+        BasicDBObject query2 = new BasicDBObject();
+        query1.put("count", new BasicDBObject("$exists",false));
+        query2.put("count", new BasicDBObject("$exists",true));
+        BasicDBList list = new BasicDBList();
+        list.add(query2);
+        list.add(query1);
+        BasicDBObject query = new BasicDBObject();
+        query.put("$or", list);
+        int count = coll.find(query).count();
+        System.out.println(count);
+        
+    }
+ 7、in 查询
+ 1  public void findByINQuery(int value1,int value2){  
+ 2         coll = getCollection("ParentColl");  
+ 3         BasicDBObject query=new BasicDBObject();  
+ 4         BasicDBList cond=new BasicDBList();  
+ 5         cond.add(value1);  
+ 6         cond.add(value2);  
+ 7         query.put("intData",new BasicDBObject("$in", cond));  
+ 8         DBCursor cur = coll.find(query);  
+ 9         while(cur.hasNext()){  
+10             System.out.println(cur.next());  
+11         }  
+12     }  
+8、addToSet的另外一种用法（本质相同）  对分组之后的数据在进行操作
+userid  question
+1　　　　a
+1　　　　b
+2　　　　c　　
+2　　　　a　　　
+2　　　　b
+1　　　　a　　
+3　　　　c　　
+3　　　　b　　
+3　　　　a
+ 1 public static void group1(){
+ 2             BasicDBObject obj = new BasicDBObject();
+ 3             BasicDBObject query = new BasicDBObject();
+ 4             BasicDBObject match = new BasicDBObject();
+ 5             BasicDBObject group = new BasicDBObject();
+ 6             BasicDBObject g1 = new BasicDBObject();
+ 7             //第一个分组 （userid 和 question 共同作为分组字段）
+ 8             g1.put("userid", "$userid");
+ 9             g1.put("question", "$question");
+10             group.put("_id", g1);
+11             //可以额外的添加一些字段（以便下次的统计操作）
+12             group.put("count", new BasicDBObject("$sum",1));
+13             group.put("userid",new BasicDBObject("addToSet","addToSet","userid")); 
+14             group.put("question",new BasicDBObject("addToSet","addToSet","question")); 
+15             obj.put("$group", group);
+16             match.put("$match", query);
+17             
+18             //对第一次分组产生的结果进行再次分组（第一次分组的结果见注1）
+19             DBObject _group = new BasicDBObject();
+20             _group.put("question", "$question");
+21             DBObject groupFields1 = new BasicDBObject("_id", _group);
+22             groupFields1.put("user_sum", new BasicDBObject("$sum", 1));
+23             BasicDBObject group1 = new BasicDBObject();
+24             group1.append("$group", groupFields1);
+25             
+26             AggregationOutput out =  coll.aggregate(match,obj,group1);
+27             CommandResult result =  out.getCommandResult();
+28             BasicDBList record = (BasicDBList) result.get("result");
+29             System.out.println(record.size());
+30     }
+注1：第一次分组的结果
+[{
+"_id" : {
+"userid" : "0003",
+"question" : "how"
+},
+"count" : 30,
+"userid" : ["0003"],
+"question" : ["how"]
+}, {
+"_id" : {
+"userid" : "0002",
+"question" : "I am comming"
+},
+"count" : 1,
+"userid" : ["0002"],
+"question" : ["I am comming"]
+}, {
+"_id" : {
+"userid" : "0002",
+"question" : "2323"
+},
+"count" : 1,
+"userid" : ["0002"],
+"question" : ["2323"]
+}, {
+"_id" : {
+"userid" : "0002",
+"question" : "how"
+},
+"count" : 38,
+"userid" : ["0002"],
+"question" : ["how"]
+}, {
+"_id" : {
+"userid" : "0001",
+"question" : "I comming"
+},
+"count" : 1,
+"userid" : ["0001"],
+"question" : ["I comming"]
+}, {
+"_id" : {
+"userid" : "0002",
+"question" : "123"
+},
+"count" : 1,
+"userid" : ["0002"],
+"question" : ["123"]
+}, {
+"_id" : {
+"userid" : "0001",
+"question" : "I am "
+},
+"count" : 1,
+"userid" : ["0001"],
+"question" : ["I am "]
+}, {
+"_id" : {
+"userid" : "0001",
+"question" : "I am comming"
+},
+"count" : 4,
+"userid" : ["0001"],
+"question" : ["I am comming"]
+}
+]
+结果解释：_id 中的内容为分组的字段是唯一的，故作为_id 后面的count userid 和question都是在分组过程中手动添加上去的，这个其实就当做中间表 以便下面的数据统计和操作
+9、模糊查询（pattern）
+String like = "...";
+Pattern pattern = Pattern.compile("^.*"+like+".*$", Pattern.CASE_INSENSITIVE);
+BasicDBObject obj = new BasicDBObject();
+obj.put("name",pattern);
+coll.find(obj);
+10、$eleMatch 查询（数组匹配查询）
+DBObject edit = new BasicDBObject();
+edit.put("slotname", "content");
+query.put("slotbind", new BasicDBObject("$elemMatch", edit));
+ 
+不难发现主要用到BasicDBObject、BasicDBList、DBCursor这三个类。BasicDBObject好比一个map，好比使用json查询中的{} 。BasicDBList是个list，用于or，nin等条件查询。DBCursor用于遍历结果集。其实只要将对应的json查询使用这3个类转化一下，就能写出对应的java代码了。

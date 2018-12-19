@@ -1,0 +1,89 @@
+-- 字符串函数练习
+
+
+SELECT
+CONCAT('     ',b.province,b.city,'    ') as '字符串拼接测试',
+INSERT(CONCAT(b.province,b.city,b.area,b.street,b.machine_name),4,20,'%替换测试%') as '字符串替换测试',
+UPPER(b.hashcode) as '大写测试',
+LOWER(UPPER(b.hashcode)) as '小写测试',
+LEFT(b.hashcode,1) as '返回左边X个字符测试',
+RIGHT(b.hashcode,1) as '返回右边X个字符测试',
+LPAD(b.province,10,'测') as '用字符串进行左填充',
+RPAD(b.province,10,'测') as '用字符串进行右填充',
+LTRIM(CONCAT('     ',b.province,b.city,'    ')) as '去掉左侧空格测试',
+RTRIM(CONCAT('     ',b.province,b.city,'    ')) as '去掉右侧空格测试',
+TRIM(CONCAT('     ',b.province,b.city,'    ')) as '去掉首尾空格',
+REPEAT(b.province,2) as '重复显示测试',
+REPLACE(b.province,'东','西') as '指定替换测试',
+STRCMP(b.province,REPLACE(b.province,'东','西')) as '字符串比较测试',
+STRCMP(b.province,b.province) as '字符串比较测试',
+SUBSTRING(b.province,2,1) as '字符串截取'
+FROM
+	base_machine_info b LIMIT 1
+
+
+-- 数字函数练习
+
+
+
+SELECT
+	s.status,
+	ABS(s.`status`) as '返回绝对值',
+	CEIL(s.status) as '返回大于x的最大整数值',
+	FLOOR(s.status) as '返回小于x的最大整数值',
+	MOD(1,10) as '计算1%10',
+	RAND() as '1到10的随机数',
+	ROUND(0.4567,2) AS '返回四舍五入的2位小数',
+	TRUNCATE(0.4567,2) as '截断为2位小数' 
+	
+FROM
+	setup_user s limit 1,2
+
+
+-- 日期函数练习
+
+
+SELECT
+	CURDATE() as '当前日期',
+	CURTIME() as '当前时间',
+	NOW() as '当前日期时间',
+	UNIX_TIMESTAMP() as '返回日期的unix时间戳',+
+DATE_FORMAT(date,format) 
+	FROM_UNIXTIME(UNIX_TIMESTAMP()) as '根据时间戳返回日期时间',
+-- '%Y-%c-%e %H:%i:%s'
+	WEEK(FROM_UNIXTIME(UNIX_TIMESTAMP())) as  '判断日期为第几周',
+	YEAR(FROM_UNIXTIME(UNIX_TIMESTAMP())) as  '判断日期为哪一年',
+	YEARWEEK(FROM_UNIXTIME(UNIX_TIMESTAMP())) as '年周结合',
+	HOUR(CURTIME()) '小时',
+	MINUTE(CURTIME()) '分钟',
+  MONTHNAME(CURTIME()) '月份英文名',
+	DATE_ADD(s.gmt_create,INTERVAL '1_2' year_month) as  '一年二个月后',
+	DATE_ADD(s.gmt_create,INTERVAL '3' day) as  '三天后',
+	DATEDIFF(DATE_ADD(s.gmt_create,INTERVAL '3' day),NOW()) as '两个日期之间的天数'
+FROM
+	setup_user s limit 2,1
+
+-- 流程函数练习
+
+
+SELECT
+	-- 如果判断为正确，返回1，错误返回2
+IF (1 > 0, 1, 2) '判断体T',
+
+IF (1 < 0, 1, 2) '判断体F',
+ -- 判断1是否为null，如果为null返回2，反之返回1
+IFNULL(NULL, 2) '判断nullT',
+IFNULL(1, 2) '判断nullF',
+-- 判断status是否等于条件
+ CASE `status`
+WHEN 0 THEN
+	'正常'
+WHEN 0 THEN
+	'关闭'
+ELSE
+	'其他异常'
+END
+FROM
+	setup_user s
+LIMIT 2,
+ 1
